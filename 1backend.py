@@ -2,6 +2,7 @@ import pylsl
 import time
 import random
 import collections
+import os
 
 results_out = None
 mrkstream_in = None
@@ -59,13 +60,6 @@ if __name__ == "__main__":
     results_out = lsl_mrk_outlet('Result_Stream')
     mrkstream_in = lsl_inlet('Task_Markers')
     eeg_in = lsl_inlet('dsi-7')
-
-    # warning message for LabRecorder (credit: Gunwoo)
-    print('Make sure that LabRecorder is connected with EEG_Markers.Trial will begin automatically when you start recording in LabRecorder.')
-
-    # wait for markerstream to be used by LabRecorder
-    while not lsl_mrk_outlet.have_consumers():
-        time.sleep(.2)
 
     # Run out main function
     main()
