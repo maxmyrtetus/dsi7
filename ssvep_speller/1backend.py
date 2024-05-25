@@ -52,7 +52,6 @@ def main():
             results_out.push_sample(pylsl.vectorstr([res]))
 
     
-                
     
 if __name__ == "__main__":
     # Initialize our streams
