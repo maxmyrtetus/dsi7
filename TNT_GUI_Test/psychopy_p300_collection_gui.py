@@ -3,12 +3,14 @@
 from psychopy import visual, event, core
 import random
 import numpy as np
+import time
 
 # Define constants
-win = visual.Window([800, 600], monitor="testMonitor", units="pix")
+win = visual.Window([800, 600], units="pix", fullscr=True)
 num_flashes = 10
-flash_duration = 0.1
-inter_flash_interval = 0.2
+flash_duration = 0.05
+inter_flash_interval = 0.05
+random.seed()
 
 def p300_collection():# Create a white circle in the middle of the screen
     central_circle = visual.Circle(win, radius=30, fillColor='black', lineColor=None)
@@ -21,16 +23,24 @@ def p300_collection():# Create a white circle in the middle of the screen
     central_circle.draw()
     win.flip()
 
-    flash_ind = 0 #initialize index for circle that flashes
+    flash_ind = 0 
+    rand_ind = 0#initialize index for circle that flashes
     # Run the P300 Speller task
     while(True):
         # Draw the outer circles
+        #random chance that random flash occurs
         if flash_ind >=4:
             flash_ind = 0
+        chance = random.choices([0,1], weights = [0.7, 0.3], k = 1)
+        if chance == [1]:
+            
+            outer_circles[flash_ind].fillColor = 'red'
+        else:
+            outer_circles[flash_ind].fillColor = 'green'
+            
         if('escape' in event.getKeys()):
                 win.close()
-        
-        outer_circles[flash_ind].fillColor = 'white'
+
         for circle in outer_circles:
             circle.draw()
         
@@ -38,9 +48,11 @@ def p300_collection():# Create a white circle in the middle of the screen
         win.flip()
         central_circle.draw()
         core.wait(inter_flash_interval)
+        outer_circles[rand_ind].fillColor = None
         outer_circles[flash_ind].fillColor = None
         flash_ind += 1
-
+        rand_ind = random.randint(0,3)
+        time.sleep(0.01)
     # Close the window
     win.close()
 
