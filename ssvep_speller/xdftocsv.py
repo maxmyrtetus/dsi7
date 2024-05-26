@@ -49,8 +49,8 @@ def save_stream_to_csv(stream, xdf_file, target_dir, stream_index):
     print(f"Saved {stream_type} stream to {csv_path}")
 
 # Source and target directories
-source_dir = './xdf'
-target_dir = './xdf-results'
+source_dir = './xdf_from_lab'
+target_dir = './csv_from_xdf'
 
 # Ensure target directory exists
 if not os.path.exists(target_dir):
