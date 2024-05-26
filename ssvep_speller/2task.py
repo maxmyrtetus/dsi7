@@ -65,7 +65,6 @@ def Paradigm():
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-
     ######################## making gui
 
     stimuli = []
