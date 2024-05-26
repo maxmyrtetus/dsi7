@@ -15,6 +15,7 @@ import time
 import numpy as np
 import pylsl
 import random
+import screeninfo
 #from psychopy_p300_collection_gui import *
 
 # Global variables
@@ -23,8 +24,9 @@ import random
 # !!! MAKE SURE refresh_rate IS SET TO YOUR MONITOR'S REFRESH RATE !!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-width = 1920  # Width of your monitor in pixels
-height = 1080  # Height of your monitor in pixels
+monitor_info = screeninfo.get_monitors()[0] #gets info about you monitor (height, width, etc.)
+width = monitor_info.width # Width of your monitor in pixels
+height = monitor_info.height  # Height of your monitor in pixels
 distance = 60  # Distance from the participant to the monitor in centimeters
 
 # Create a monitor object
@@ -130,45 +132,47 @@ def Paradigm2(num_trials=1): #send LSL Markers everytime the p300 flash happens 
             win.flip()
 
 def Paradigm():
-    central_circle = visual.Circle(win, radius=30, fillColor='black', lineColor=None)
+
 
     # Create four circles around the central circle
-    positions = np.array([[0, 150], [150, 0], [0, -150], [-150, 0]])
-    outer_circles = [visual.Circle(win, radius=30, pos=pos, fillColor=None, lineColor='white') for pos in positions]
+    positions = np.array([[0, height/2 - 50], [width/2 - 50, 0], [0, -height/2 + 50], [-width/2 + 50, 0]])
+    squares = [visual.Rect(win, size = (100, 100), pos=pos, fillColor=None, lineColor='white') for pos in positions]
 
-    # Draw the central circle
-    central_circle.draw()
-    win.flip()
+    # Frequencies (in Hz)
+    frequencies = [8, 10, 12, 14]
+    # Periods (in seconds)
+    periods = [1 / freq for freq in frequencies]
 
-    flash_ind = 0
-    rand_ind = 0 #initialize index for circle that flashes
-    # Run the P300 Speller task
-    while(True):
-        # Draw the outer circles
-        #random chance that random flash occurs
-        if flash_ind >=4:
-            flash_ind = 0
-        chance = random.choices([0,1], weights = [0.7, 0.3], k = 1)
-        if chance == [1]:
-            outer_circles[flash_ind].fillColor = 'red'
-        else:
-            outer_circles[flash_ind].fillColor = 'green'
-            
-        if('escape' in event.getKeys()):
-                win.close()
+    # Initialize variables to keep track of time
+    last_toggles = [core.getTime()] * len(squares)
+    white_arr = np.ones((1,3))
 
-        for circle in outer_circles:
-            circle.draw()
-        
+    # Main loop
+    running = True
+    while running:
+        current_time = core.getTime()
+        # Check for quit (the 'q' key)
+        keys = event.getKeys()
+        if 'escape' in keys:
+            running = False
 
+        for i, square in enumerate(squares):
+            if current_time - last_toggles[i] >= periods[i]:
+                # Toggle the color of the square
+                if np.array_equal(white_arr, square.fillColor):
+
+                    square.fillColor = 'black'
+                    print('a')
+                else:
+                    square.fillColor = 'white'
+                last_toggles[i] = current_time
+                print(square.fillColor)
+
+            # Draw the square
+            square.draw()
+
+        # Flip the window buffers
         win.flip()
-        central_circle.draw()
-        core.wait(inter_flash_interval)
-        outer_circles[rand_ind].fillColor = None
-        outer_circles[flash_ind].fillColor = None
-        flash_ind += 1
-        rand_ind = random.randint(0,3)
-        time.sleep(0.01)
     # Close the window
     win.close()
     
@@ -194,14 +198,14 @@ if __name__ == "__main__":
     # Set random seed
     random.seed()
     
-    # Initialize LSL marker streams
-    mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
-    results_in = lsl_inlet('Result_Stream')
+    # # Initialize LSL marker streams
+    # mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
+    # results_in = lsl_inlet('Result_Stream')
 
     # Create PsychoPy window
     win = visual.Window(
         screen = 0,
-        size=[win_w, win_h],
+        size=[width, height],
         units="pix",
         fullscr=False,
         color=bg_color,
@@ -212,5 +216,5 @@ if __name__ == "__main__":
     time.sleep(1)
     
     # Run through paradigm
-    Paradigm(10)
+    Paradigm()
     

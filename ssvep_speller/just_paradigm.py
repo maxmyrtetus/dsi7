@@ -1,10 +1,6 @@
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!! MAKE SURE refresh_rate IS SET TO YOUR MONITOR'S REFRESH RATE !!!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-import psychopy.visual
-import psychopy.event
-import psychopy.core
+import psychopy.visual as visual
+import psychopy.event as event
+import psychopy.core as core
 import time
 import numpy as np
 import pylsl
@@ -12,11 +8,8 @@ import random
 import csv
 import os
 import pandas as pd
-# Global variables
-#
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!! MAKE SURE refresh_rate IS SET TO YOUR MONITOR'S REFRESH RATE !!!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+#Note: the timestamps added to the csv file created here are from psychopy.core, not pylsl
 
 win = None # Global variable for window (Initialized in main)
 mrkstream_out = None # Global variable for LSL marker stream output (Initialized in main)
@@ -25,15 +18,11 @@ fixation = None # Global variable for fixation cross (Initialized in main)
 training_mode = True # train the model?
 bg_color = [0, 0, 0]
 
-
-#========================================================
-# High Level Functions
-#========================================================
 def Paradigm():
     win_w = 2736/2
     win_h = 1824/2
     win_size = [win_w, win_h]  # Window size    
-    win = psychopy.visual.Window(win_size, color=[-1, -1, -1], fullscr=True)
+    win = visual.Window(win_size, color=[-1, -1, -1], fullscr=True)
         #refresh_rate = 60
 
     refresh_rate = win.getActualFrameRate()
@@ -41,7 +30,7 @@ def Paradigm():
         print("Could not measure frame rate, assuming 60Hz")
         refresh_rate = 60
     #refresh_rate = 165. # Monitor refresh rate (CRITICAL FOR TIMING)
-    # Define the squares (stimuli)
+    #Define the squares (stimuli)
     stim_freqs = [8, 9, 10, 11]  # Frequencies for SSVEP stimuli in Hz
     phase_shift = 0
 
@@ -77,8 +66,8 @@ def Paradigm():
     stimuli = []
     training_stimuli = []
     for i, pos in enumerate(key_positions):
-        square = psychopy.visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=[1, 1, 1], lineColor=None)
-        training_square = psychopy.visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=None, lineColor="red", lineWidth=10)
+        square = visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=[1, 1, 1], lineColor=None)
+        training_square = visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=None, lineColor="red", lineWidth=10)
         stimuli.append(square)
         training_stimuli.append(training_square)
 
@@ -94,35 +83,32 @@ def Paradigm():
                 for stim_index, square in enumerate(stimuli):
                     if training_mode:
                         square.draw()
-                        training_stimuli[req_sq_seq[k]].draw()
-                        #update meta dataframe with time red square was shown 
-                        training_sequence.at[k, "time"] = pylsl.local_clock()
+                        training_stimuli[red_square_seq[k]].draw()
+                        training_sequence.at[k, "time"] = core.getTime()
                     else:
                         square.draw()
                     
 
                 # Break if there's a keyboard event
-                if len(psychopy.event.getKeys()) > 0:
+                if len(event.getKeys()) > 0:
                     terminate1 = True
                     terminate2 = True
 
-                mrkstream_out.push_sample(pylsl.vectorstr(["0"])) # isi marker
 
                 win.flip()
             # STIMULATORY INTERVAL (FLASHING)
             # 1500ms flicker square stim
             for frame in range(MsToFrames(1500, refresh_rate)):
-                current_time = psychopy.core.getTime()
+                current_time = core.getTime()
                 for stim_index, square in enumerate(stimuli):
 
-                    mrkstream_out.push_sample(pylsl.vectorstr(["16"])) # si marker
 
                     if int(current_time * stim_freqs[stim_index]) % 2 == 0: #draw flickers 
                         square.draw()
                     
 
                 # Break if there's a keyboard event
-                if len(psychopy.event.getKeys()) > 0:
+                if len(event.getKeys()) > 0:
                     terminate1 = True
                     terminate2 = True
                     break
@@ -145,9 +131,10 @@ def Paradigm():
             text.draw()
             win.flip() """
 
+
     ############################## Export to CSV
 
-    psychopy.event.clearEvents()
+    event.clearEvents()
     win.close()
     # Get the list of existing files in the directory
     existing_files = os.listdir(directory)
@@ -165,7 +152,7 @@ def Paradigm():
     # Construct the new file path with the incremented run number
     file_path = os.path.join(directory, f'training_sequence_run{run_number}.csv')
 
-    # Export to CSV
+    # # Export to CSV
     # with open(file_path, 'w', newline='') as file:
     #     writer = csv.writer(file)
     #     writer.writerow(training_sequence)
@@ -173,41 +160,8 @@ def Paradigm():
 
     print(f'File saved as: {file_path}')
 
-            
 def MsToFrames(ms, fs):
     dt = 1000 / fs;
     return np.round(ms / dt).astype(int);
 
-def lsl_mrk_outlet(name):
-    info = pylsl.stream_info(name, 'Markers', 1, 0, pylsl.cf_string, 'ID0123456789');
-    outlet = pylsl.stream_outlet(info, 1, 1)
-    print('task.py created outlet.')
-    return outlet
-    
-def lsl_inlet(name):
-    # Resolve all marker streams
-    inlet = None
-    tries = 0
-    info = pylsl.resolve_stream('name', name)
-    inlet = pylsl.stream_inlet(info[0], recover=False)
-    print(f'task.py has received the {info[0].type()} inlet.')
-    return inlet
-
-if __name__ == "__main__":
-    # Set random seed
-    random.seed()
-
-    # Initialize LSL marker streams
-    mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
-    results_in = lsl_inlet('Result_Stream')
-
-    # Wait a second for the streams to settle down
-    time.sleep(1)
-
-    # wait for markerstream to be used by LabRecorder
-    while not mrkstream_out.have_consumers():
-        psychopy.core.wait(0.2)
-
-    # Run through paradigm
-    if mrkstream_out.have_consumers():
-        Paradigm()
+Paradigm()
