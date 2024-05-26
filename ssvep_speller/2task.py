@@ -23,6 +23,7 @@ mrkstream_out = None # Global variable for LSL marker stream output (Initialized
 results_in = None # Global variable for LSL result input (Initialized in main)
 fixation = None # Global variable for fixation cross (Initialized in main)
 training_mode = True # train the model?
+GUI_only_mode = True
 bg_color = [0, 0, 0]
 
 
@@ -40,10 +41,10 @@ def Paradigm():
     if refresh_rate is None:
         print("Could not measure frame rate, assuming 60Hz")
         refresh_rate = 60
-    #refresh_rate = 165. # Monitor refresh rate (CRITICAL FOR TIMING)
+    # refresh_rate = 165. # Monitor refresh rate (CRITICAL FOR TIMING)
     # Define the squares (stimuli)
     stim_freqs = [8, 9, 10, 11]  # Frequencies for SSVEP stimuli in Hz
-    phase_shift = 0
+    phase_shifts = [0.5, 0, 0, 0]
 
     # makes random set of training squares and exports to csv file
     training_length = 20
@@ -54,11 +55,11 @@ def Paradigm():
     for i in range(training_length):
         red_sq_index = random.randint(0,3)
         red_square_seq.append(red_sq_index)
-        new_row = pd.DataFrame({"freq": [stim_freqs[red_sq_index]], "shift": [phase_shift], "time": [None]})
+        new_row = pd.DataFrame({"freq": [stim_freqs[red_sq_index]], "shift": [phase_shifts[red_sq_index]], "time": [None]})
         training_sequence = pd.concat([training_sequence, new_row], ignore_index = True)
 
     # Directory where the files will be saved
-    directory = './training_sequence/'
+    directory = './ssvep_speller/training_sequence/'
 
     # Ensure the directory exists
     if not os.path.exists(directory):
@@ -94,7 +95,7 @@ def Paradigm():
                 for stim_index, square in enumerate(stimuli):
                     if training_mode:
                         square.draw()
-                        training_stimuli[req_sq_seq[k]].draw()
+                        training_stimuli[red_square_seq[k]].draw()
                         #update meta dataframe with time red square was shown 
                         training_sequence.at[k, "time"] = pylsl.local_clock()
                     else:
@@ -105,8 +106,8 @@ def Paradigm():
                 if len(psychopy.event.getKeys()) > 0:
                     terminate1 = True
                     terminate2 = True
-
-                mrkstream_out.push_sample(pylsl.vectorstr(["0"])) # isi marker
+                if GUI_only_mode != True:
+                    mrkstream_out.push_sample(pylsl.vectorstr(["0"])) # isi marker
 
                 win.flip()
             # STIMULATORY INTERVAL (FLASHING)
@@ -114,8 +115,8 @@ def Paradigm():
             for frame in range(MsToFrames(1500, refresh_rate)):
                 current_time = psychopy.core.getTime()
                 for stim_index, square in enumerate(stimuli):
-
-                    mrkstream_out.push_sample(pylsl.vectorstr(["16"])) # si marker
+                    if GUI_only_mode != True:
+                        mrkstream_out.push_sample(pylsl.vectorstr(["16"])) # si marker
 
                     if int(current_time * stim_freqs[stim_index]) % 2 == 0: #draw flickers 
                         square.draw()
@@ -197,17 +198,20 @@ if __name__ == "__main__":
     # Set random seed
     random.seed()
 
-    # Initialize LSL marker streams
-    mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
-    results_in = lsl_inlet('Result_Stream')
+    if GUI_only_mode != True:
+        # Initialize LSL marker streams
+        mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
+        results_in = lsl_inlet('Result_Stream')
 
-    # Wait a second for the streams to settle down
-    time.sleep(1)
+        # Wait a second for the streams to settle down
+        time.sleep(1)
 
-    # wait for markerstream to be used by LabRecorder
-    while not mrkstream_out.have_consumers():
-        psychopy.core.wait(0.2)
+        # wait for markerstream to be used by LabRecorder
+        while not mrkstream_out.have_consumers():
+            psychopy.core.wait(0.2)
 
-    # Run through paradigm
-    if mrkstream_out.have_consumers():
+        # Run through paradigm
+        if mrkstream_out.have_consumers():
+            Paradigm()
+    else:
         Paradigm()
