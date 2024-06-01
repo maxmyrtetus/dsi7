@@ -12,6 +12,7 @@ import random
 import csv
 import os
 import pandas as pd
+import screeninfo
 # Global variables
 #
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -25,8 +26,11 @@ fixation = None # Global variable for fixation cross (Initialized in main)
 training_mode = True # train the model?
 GUI_only_mode = True
 bg_color = [0, 0, 0]
+monitor_info = screeninfo.get_monitors()[0] #gets info about you monitor (height, width, etc.)
+width = monitor_info.width # Width of your monitor in pixels
+height = monitor_info.height  # Height of your monitor in pixels
 
-
+cursor_mode = True
 #========================================================
 # High Level Functions
 #========================================================
@@ -34,7 +38,7 @@ def Paradigm():
     win_w = 2736/2
     win_h = 1824/2
     win_size = [win_w, win_h]  # Window size    
-    win = psychopy.visual.Window(win_size, color=[-1, -1, -1], fullscr=True)
+    win = psychopy.visual.Window(size = (width, height), units="pix", color=[-1, -1, -1], fullscr=True)
         #refresh_rate = 60
 
     refresh_rate = win.getActualFrameRate()
@@ -68,17 +72,18 @@ def Paradigm():
     ######################## making gui
 
     stimuli = []
-    key_positions = [(-.5,.5), (.5, .5), (-.5, -.5), (.5, -.5)]  # Positions for each key/square
-    #keys layout:
-    #  0  1
-    #  2  3
+
+    if cursor_mode == True:
+        key_positions = [(0, height/2 - 50), (width/2 - 50, 0), (0, -height/2 + 50), (-width/2 + 50, 0)]
+    else:
+        key_positions = [(-width/4, height/4), (width/4, height/4), (-width/4, -height/4), (width/4, -height/4)]  # Positions for each key/square
     
     # Create square stimuli
     stimuli = []
     training_stimuli = []
     for i, pos in enumerate(key_positions):
-        square = psychopy.visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=[1, 1, 1], lineColor=None)
-        training_square = psychopy.visual.Rect(win, width=0.2, height=0.3, pos=pos, fillColor=None, lineColor="red", lineWidth=10)
+        square = psychopy.visual.Rect(win, width=100, height=100, pos=pos, fillColor=[1, 1, 1], lineColor=None)
+        training_square = psychopy.visual.Rect(win, width=100, height=100, pos=pos, fillColor=None, lineColor="red", lineWidth=10)
         stimuli.append(square)
         training_stimuli.append(training_square)
 
