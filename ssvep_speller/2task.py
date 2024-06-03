@@ -46,48 +46,24 @@ cursor_mode = True
 #========================================================
 # High Level Functions
 #========================================================
-def create_4_keys(size=120, colors=[-1, -1, -1] * 4):
-    #positions = []
-    #positions.extend([[-width / 2 + 190 * 3 + 150, height / 2 - 90 - i * 200 - 80] for i in range(4)])
-    key_positions = [(0, height/2 - 50), (width/2 - 50, 0), (0, -height/2 + 50), (-width/2 + 50, 0)]
-    keys = visual.ElementArrayStim(win, nElements=4, elementTex=None, elementMask=None, units='pix',
+colors= [-1, -1, -1] * 4 + [1, -1, -1]
+def create_4_keys(size=100, colors=colors):
+    key_positions = [ (0,0), (0, height/2 - 50), (width/2 - 50, 0), (0, -height/2 + 50), (-width/2 + 50, 0)]
+    keys = visual.ElementArrayStim(win, nElements=5, elementTex=None, elementMask=None, units='pix',
                                    sizes=[size, size], xys=key_positions, colors=colors)
     return keys
 
 def Paradigm():
-    # win_w = 2736/2
-    # win_h = 1824/2
-    # win_size = [win_w, win_h]  # Window size    
-    # win = psychopy.visual.Window(size = (width, height), units="pix", color=[-1, -1, -1], fullscr=True)
-    #     #refresh_rate = 60
-
-    # refresh_rate = win.getActualFrameRate()
-    # if refresh_rate is None:
-    #     print("Could not measure frame rate, assuming 60Hz")
-    #     refresh_rate = 60
-    # # refresh_rate = 165. # Monitor refresh rate (CRITICAL FOR TIMING)
-    # # Define the squares (stimuli)
+    #Define the squares (stimuli)
     stim_freqs = [8, 10, 12, 14]  # Frequencies for SSVEP stimuli in Hz
     phase_shifts = [0, 0, 0, 0]
 
-    keyboard_classes = [(8, 0), (10, 0), (12, 0), (14, 0),]
+    keyboard_classes = [(0,0), (8, 0), (10, 0), (12, 0), (14, 0)]
     stim_duration = 5  # in seconds
     n_keyboard_classes = len(keyboard_classes)
     classes = keyboard_classes
     refresh_rate = 60.003  # refresh rate of the monitor
     use_retina = False  # whether the monitor is a retina display
-
-    # makes random set of training squares and exports to csv file
-    training_length = 20
-    random.seed()
-    training_sequence = pd.DataFrame(columns = ["freq", "shift", "time"])
-    red_square_seq = []
-
-    for i in range(training_length):
-        red_sq_index = random.randint(0,3)
-        red_square_seq.append(red_sq_index)
-        new_row = pd.DataFrame({"freq": [stim_freqs[red_sq_index]], "shift": [phase_shifts[red_sq_index]], "time": [None]})
-        training_sequence = pd.concat([training_sequence, new_row], ignore_index = True)
 
     # Directory where the files will be saved
     directory = './ssvep_speller/training_sequence/'
@@ -107,7 +83,6 @@ def Paradigm():
     
     # # Create square stimuli
     # stimuli = []
-    training_stimuli = []
     # for i, pos in enumerate(key_positions):
     # #     square = psychopy.visual.Rect(win, width=100, height=100, pos=pos, fillColor=[1, 1, 1], lineColor=None)
     #     training_square = psychopy.visual.Rect(win, width=100, height=100, pos=pos, fillColor=None, lineColor="red", lineWidth=10)
@@ -169,7 +144,7 @@ def Paradigm():
     #         results, t = results_in.pull_sample(timeout=0)  
     #         if results != None:
     #             break
-        
+
     #     # Once results found, display them
     #     text.text = f'Classifier returned: {results[0]}'
     #     print(f'{text.text}')
@@ -177,39 +152,44 @@ def Paradigm():
     #         text.draw()
     #         win.flip() """
 
-    kb = keyboard.Keyboard()
+    kb = keyboard.Keyboard() 
 
-    key_positions = [(0, height/2 - 50), (width/2 - 50, 0), (0, -height/2 + 50), (-width/2 + 50, 0)]
-    flickering_keyboard = create_4_keys()
-    training_stimuli = []
-    for i, pos in enumerate(key_positions):
-    #     square = psychopy.visual.Rect(win, width=100, height=100, pos=pos, fillColor=[1, 1, 1], lineColor=None)
-        training_square = visual.Rect(win, width=130, height=130, pos=[0,0], fillColor=None, lineColor="red", lineWidth=30)
-    #     stimuli.append(square)
-        training_stimuli.append(training_square)
+    flickering_keyboard = create_4_keys() 
 
-    stim_duration_frames = MsToFrames((stim_duration) * 1000,
-                                       refresh_rate)  # total number of frames for the stimulation
-    frame_indices = np.arange(stim_duration_frames)  # the frames as integer indices
-    flickering_frames = np.zeros((len(frame_indices), n_keyboard_classes))
-    for i_class, (flickering_freq, phase_offset) in enumerate(keyboard_classes):
-        phase_offset += .00001  # nudge phase slightly from points of sudden jumps for offsets that are pi multiples
-        flickering_frames[:, i_class] = signal.square(2 * np.pi * flickering_freq * (
-                    frame_indices / refresh_rate) + phase_offset * np.pi)  # frequency approximation formula
+    stim_duration_frames = MsToFrames((stim_duration) * 1000, 
+                                       refresh_rate)  #total number of frames for the stimulation 
+    frame_indices = np.arange(stim_duration_frames)  #the frames as integer indices 
+    flickering_frames = np.zeros((len(frame_indices), n_keyboard_classes)) 
+    for i_class, (flickering_freq, phase_offset) in enumerate(keyboard_classes): 
+        phase_offset += .00001  # nudge phase slightly from points of sudden jumps for offsets that are pi multiples 
+        flickering_frames[:, i_class] = signal.square(2 * np.pi * flickering_freq * ( 
+                    frame_indices / refresh_rate) + phase_offset * np.pi)  # frequency approximation formula 
+    
+
+    flash_sq_positions = [(0, height/2 - 50), (width/2 - 50, 0), (0, -height/2 + 50), (-width/2 + 50, 0)]
+    flickering_keyboard.sizes[0] = [150,150]
     
     while True:
         keys = kb.getKeys()
-        for thisKey in keys:
-            if thisKey == 'escape':
-                core.quit()
         for i_frame, frame in enumerate(flickering_frames):
+            if('escape' in event.getKeys()):
+                win.close()
             next_flip = win.getFutureFlipTime()
-            flickering_keyboard.colors = np.array([frame] * 3).T
-            training_square.draw()
+            new_colors = np.array([frame] * 3).T
+            new_colors[0] = np.array([1, -1, -1])
+            flickering_keyboard.colors = new_colors
             flickering_keyboard.draw()
             #training_stimuli[0].draw()
-            
+        
             win.flip()
+        core.wait(1)
+        new_xys = [random.choice(flash_sq_positions)] + flash_sq_positions
+        while(np.array_equal(flickering_keyboard.xys, new_xys)):
+            new_xys = [random.choice(flash_sq_positions)] + flash_sq_positions
+        flickering_keyboard.xys = new_xys
+        flickering_keyboard.draw()
+        win.flip()
+        core.wait(2)
 
 
 
