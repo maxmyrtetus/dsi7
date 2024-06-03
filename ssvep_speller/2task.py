@@ -22,24 +22,18 @@ from scipy import signal
 monitor_info = screeninfo.get_monitors()[0] #gets info about you monitor (height, width, etc.)
 width = monitor_info.width # Width of your monitor in pixels
 height = monitor_info.height  # Height of your monitor in pixels
-keyboard_classes = [(8, 0), (10, 0), (12, 0), (14, 0),]
+keyboard_classes = [(8, 0), (10, 0), (12, 0), (14, 0)]
 stim_duration = 5  # in seconds
 n_keyboard_classes = len(keyboard_classes)
 classes = keyboard_classes
 refresh_rate = 60.003  # refresh rate of the monitor
 use_retina = False  # whether the monitor is a retina display
-win = visual.Window(
-        size=[width, height],
-        checkTiming=True,
-        allowGUI=False,
-        fullscr=True,
-        useRetina=use_retina
-    ) # Global variable for window (Initialized in main)
+win = None
 mrkstream_out = None # Global variable for LSL marker stream output (Initialized in main)
 results_in = None # Global variable for LSL result input (Initialized in main)
 fixation = None # Global variable for fixation cross (Initialized in main)
 training_mode = True # train the model?
-GUI_only_mode = True
+GUI_only_mode = False
 bg_color = [0, 0, 0]
 
 cursor_mode = True
@@ -171,6 +165,8 @@ def Paradigm():
     
     while True:
         keys = kb.getKeys()
+        
+        mrkstream_out.push_sample(pylsl.vectorstr(["16"])) #replace 16 with Hz number or square position
         for i_frame, frame in enumerate(flickering_frames):
             if('escape' in event.getKeys()):
                 win.close()
@@ -245,22 +241,28 @@ if __name__ == "__main__":
     # Set random seed
     random.seed()
 
-    # if GUI_only_mode != True:
-    #     # Initialize LSL marker streams
-    #     mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
-    #     results_in = lsl_inlet('Result_Stream')
+    if GUI_only_mode != True:
+        # Initialize LSL marker streams
+        mrkstream_out = lsl_mrk_outlet('Task_Markers') # important this is first
+        results_in = lsl_inlet('Result_Stream')
 
-    #     # Wait a second for the streams to settle down
-    #     time.sleep(1)
+        win = visual.Window(
+            size=[width, height],
+            checkTiming=True,
+            allowGUI=False,
+            fullscr=True,
+            useRetina=use_retina
+        ) # Global variable for window (Initialized in main)
+        
+        # Wait a second for the streams to settle down
+        time.sleep(1)
 
-    #     # wait for markerstream to be used by LabRecorder
-    #     while not mrkstream_out.have_consumers():
-    #         core.wait(0.2)
+        # wait for markerstream to be used by LabRecorder
+        while not mrkstream_out.have_consumers():
+            core.wait(0.2)
 
-    #     # Run through paradigm
-    #     if mrkstream_out.have_consumers():
-    #         Paradigm()
-    # else:
-    #     Paradigm()
-
-    Paradigm()
+        # Run through paradigm
+        if mrkstream_out.have_consumers():
+            Paradigm()
+    else:
+        Paradigm()
